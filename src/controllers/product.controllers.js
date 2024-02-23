@@ -9,6 +9,37 @@ const { SuccessCode } = require("../enums/success-code.enum.js");
 
 // Middleware for uploading product photo.
 const photoUpload = upload.single("image");
+// =================Validate product type and model================================
+const validateProductTypeAndModel = (req, res, next) => {
+  const { productType } = req.params;
+  const allowedProductTypes = ["paving", "marble", "aglomerate"];
+
+  if (!allowedProductTypes.includes(productType)) {
+    return res
+      .status(StatusCode.BadRequest)
+      .json({ message: "Invalid product type" });
+  }
+
+  let model;
+  switch (productType) {
+    case "paving":
+      model = require("../models/paving.model.js");
+      break;
+    case "marble":
+      model = require("../models/marble.model.js");
+      break;
+    case "aglomerate":
+      model = require("../models/aglomerate.model.js");
+      break;
+    default:
+      return res
+        .status(StatusCode.BadRequest)
+        .json({ message: "Invalid product type" });
+  }
+
+  req.productModel = model;
+  next();
+};
 
 // =================Create new product================================
 // @desc: Create new product
@@ -117,14 +148,15 @@ const deleteAllProducts = asyncWrapper(async (req, res, next) => {
   const productModel = req.productModel;
 
   // Call service function to delete all products
-  const result = await productService.deleteAllProducts(productModel);
+  await productService.deleteAllProducts(productModel);
 
   // Send response
-  res.status(StatusCode.NoContent).json({
+  res.status(StatusCode.Ok).json({
     message: SuccessCode.ProductsDeleted,
-    data: null,
   });
 });
+
+
 
 module.exports = {
   createProduct,
@@ -134,4 +166,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   deleteAllProducts,
+  validateProductTypeAndModel,
 };

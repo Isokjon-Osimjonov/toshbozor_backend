@@ -1,5 +1,5 @@
-const express = require("express");
-const router = express.Router();
+const { Router } = require("express");
+const router = Router();
 
 const {
   createProduct,
@@ -9,24 +9,27 @@ const {
   updateProduct,
   deleteProduct,
   deleteAllProducts,
-} = require("../controllers/product.controllers");
-const {
   validateProductTypeAndModel,
-} = require("../middleware/product-type.middleware");
+} = require("../controllers/product.controllers");
+
+const {
+  protect,
+  adminAccess,
+} = require("../middleware/auth-protection.middleware");
 
 router.use("/:productType", validateProductTypeAndModel);
 
 // Routes for products
 router
   .route("/:productType")
-  .post(photoUpload, createProduct)
+  .post(protect, adminAccess, photoUpload, createProduct)
   .get(getAllProducts)
-  .delete(deleteAllProducts);
+  .delete(protect, adminAccess, deleteAllProducts);
 
 router
   .route("/:productType/:id")
   .get(getProductById)
-  .put(photoUpload, updateProduct)
-  .delete(deleteProduct);
+  .put(protect, adminAccess, photoUpload, updateProduct)
+  .delete(protect, adminAccess, deleteProduct);
 
 module.exports = router;

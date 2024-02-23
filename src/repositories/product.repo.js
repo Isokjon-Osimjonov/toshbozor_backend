@@ -40,7 +40,7 @@ const deleteProduct = async (model, id) => {
 };
 
 const deleteAll = async (model) => {
-  return model.deleteMany();
+  return await model.deleteMany();
 };
 
 module.exports = {
