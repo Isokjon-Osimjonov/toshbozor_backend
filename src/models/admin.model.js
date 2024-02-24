@@ -1,12 +1,19 @@
 const { Schema, model } = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+
 const adminSchema = new Schema(
   {
     username: {
       type: String,
       required: [true, "Username is required"],
       unique: [true, "Username is already taken please try another"],
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: [true, "Email is already taken please try another"],
     },
     password: {
       type: String,
@@ -17,6 +24,8 @@ const adminSchema = new Schema(
       default: true,
     },
     passwordChangedAt: Date,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
   },
   { timestamps: true }
 );
@@ -32,12 +41,23 @@ adminSchema.methods.generateToken = function () {
   );
 };
 
+// adminSchema.pre("save", function (next) {
+//   if (!this.isModified("password") || this.isNew) return next();
+//   this.passwordChangedAt = Date.now() - 1000;
+//   next();
+// });
+
 // Cheking password with candidate password
 adminSchema.methods.correctPassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
-
-// Cheking if user chnaged password
+// adminSchema.methods.correctPassword = async function (
+//   candidatePassword,
+//   userPassword
+// ) {
+//   return await bcrypt.compare(candidatePassword, userPassword);
+// };
+// Cheking if user chnaged password after jwt was issued
 adminSchema.methods.isPasswordChanged = function (jwt_iat) {
   if (this.passwordChangedAt) {
     const changedAt = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
@@ -46,6 +66,23 @@ adminSchema.methods.isPasswordChanged = function (jwt_iat) {
   }
 
   return false;
+};
+
+// Creating password reset token
+// Define createPasswordResetToken method on adminSchema
+adminSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  console.log({ resetToken }, this.passwordResetToken);
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 module.exports = model("Admin", adminSchema);

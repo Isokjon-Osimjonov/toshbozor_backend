@@ -8,5 +8,6 @@ exports.SuccessCode = {
   SignedUp: "SIGNED_UP",
   SignedIn: "SIGNED_IN",
   SignedOut: "SIGNED_OUT",
+  PasswordChanged: "PASSWORD_CHANGED",
 
 };

@@ -5,38 +5,42 @@ const { SuccessCode } = require("../enums/success-code.enum");
 const hashedPassword = require("../utils/hash-password");
 const adminDataValidation = require("../validators/admin.validator");
 const AppError = require("../utils/appError");
-const adminRepo = require("../repositories/admin.repo");
+const Email = require("../utils/email");
+const createSendToken = require("../middleware/token-generate.middleware");
+
 // =================Admin sign up================================
 // @desc: Admin sign up
 // @route: POST /api/v1/admin/signup
 // @access: private / Admin
 const adminSignUp = asyncWrapper(async (req, res, next) => {
-  const { username, password } = req.body;
-
+  const { username, email, password } = req.body;
+  const url = "https://toshbozor.uz";
   // Validate admin data
-  const validateddata = adminDataValidation.validateAdminData(req.body);
+  const validatedData = adminDataValidation.validateAdminData(req.body);
 
   // Check if required fields are present
-  if (!validateddata.username || !validateddata.password) {
+  if (
+    !validatedData.username ||
+    !validatedData.email ||
+    !validatedData.password
+  ) {
     return next(
       new AppError("Please provide all required fields", StatusCode.BadRequest)
     );
   }
-  const data = {
-    username: validateddata.username,
-    password: await hashedPassword(validateddata.password),
+
+  const validData = {
+    username: validatedData.username,
+    email: validatedData.email,
+    password: await hashedPassword(validatedData.password),
   };
 
   // Call service function to create admin
-  const admin = await adminService.signUp(data);
-  const token = admin.generateToken();
+  const admin = await adminService.signUp(validData);
+  await new Email(req.body, url).sendWelcome();
 
   // Send response
-  res.status(StatusCode.Created).json({
-    message: SuccessCode.SignedUp,
-    data: admin,
-    token,
-  });
+  createSendToken(admin, StatusCode.Created, req, res);
 });
 
 // =================Admin sign in================================
@@ -58,13 +62,8 @@ const adminSignIn = asyncWrapper(async (req, res, next) => {
 
   // Call service function to SignIn
   const admin = await adminService.signIn(username, password);
-  const token = admin.generateToken();
 
-  res.status(StatusCode.Ok).json({
-    message: SuccessCode.SignedIn,
-    data: admin,
-    token,
-  });
+  createSendToken(admin, StatusCode.Created, req, res);
 });
 
 // =================Admin log out================================
@@ -82,8 +81,32 @@ const adminSignOut = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// =================Admin forgot password================================
+// @desc: Admin log out
+// @route: POST /api/v1/admin/password_reset
+// @access: private / Admin
+const forgotPassword = asyncWrapper(async (req, res, next) => {
+  await adminService.forgotPassword(req.body.username, req);
+  res.status(StatusCode.Ok).json({
+    message: "Token sent to email!",
+  });
+});
+
+// =================Admin reset password================================
+// @desc: Admin reset password
+// @route: POST /api/v1/admin/password_reset/:token
+// @access: private / Admin
+const resetPassword = asyncWrapper(async (req, res, next) => {
+  const { token } = req.params;
+  const data = await adminService.resetPassword(req.body.password, token);
+  console.log(data)
+  createSendToken(data, StatusCode.Created, req, res);
+});
+
 module.exports = {
   adminSignUp,
   adminSignIn,
   adminSignOut,
+  forgotPassword,
+  resetPassword,
 };

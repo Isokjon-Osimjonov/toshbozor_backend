@@ -1,5 +1,4 @@
 const adminModel = require("../models/admin.model");
-
 const signUp = async (data) => {
   return await adminModel.create(data);
 };

@@ -14,6 +14,7 @@ const adminValidationSchema = Joi.object({
     .max(1024)
     .pattern(/^\S*$/)
     .message("Passsword can not contain spaces"),
+  email: Joi.string().required().email(),
 });
 
 const validateAdminData = (data) => {
