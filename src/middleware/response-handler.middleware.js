@@ -15,7 +15,7 @@ const signToken = (id, username) => {
   });
 };
 
-const createSendToken = (data, statusCode, req, res) => {
+const responseHandler = (data, statusCode, req, res) => {
   // Check if data is undefined or null
   if (!data) {
     return res.status(500).json({ error: "Data is undefined or null" });
@@ -30,10 +30,14 @@ const createSendToken = (data, statusCode, req, res) => {
 
   const token = signToken(data._id, data.username);
 
+  // Remove password from output
+  data.password = undefined;
+
   res.status(statusCode).json({
+    status: "success",
     token,
     data,
   });
 };
 
-module.exports = createSendToken;
+module.exports = responseHandler;

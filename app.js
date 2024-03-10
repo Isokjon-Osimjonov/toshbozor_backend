@@ -59,7 +59,9 @@ app.use(mongoSanitize());
 
 // route
 app.use("/api/v1", indexRoutes);
-
+app.use('/' , (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
+})
 // error handling middleware
 app.use(globalErrorHandler);
 app.all("*", (req, res, next) => {

@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
 });
 
 // Initializing upload function
-const fileSizeLimit = 10 * 1024 * 1024;
+const fileSizeLimit = 10 * 1024 * 1024 * 3;
 const photoUpload = multer({
   storage: storage,
   limits: { fileSize: fileSizeLimit },

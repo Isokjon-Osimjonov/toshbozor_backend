@@ -21,10 +21,17 @@ const marbleSchema = new Schema(
       type: String,
       required: [true, "A product must have a size"],
     },
-    image: {
-      type: String,
-      required: [true, "A product must have an image"],
-    },
+    image: [
+      {
+        url: { type: String, required: true },
+      },
+    ],
+    // image: 
+    //   {
+    //     type:[ String],
+    //     required: [true, "A product must have an image"],
+    //   },
+    
   },
   {
     timestamps: true,

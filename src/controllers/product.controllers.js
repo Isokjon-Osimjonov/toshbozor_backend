@@ -8,11 +8,18 @@ const { StatusCode } = require("../enums/status-code.enum.js");
 const { SuccessCode } = require("../enums/success-code.enum.js");
 
 // Middleware for uploading product photo.
-const photoUpload = upload.single("image");
+const photoUpload = upload.array("image", 10);
+// const photoUpload = upload.fields([
+//   {
+//     name: "image",
+//     maxCount: 7,
+//   },
+// ]);
+
 // =================Validate product type and model================================
 const validateProductTypeAndModel = (req, res, next) => {
   const { productType } = req.params;
-  const allowedProductTypes = ["paving", "marble", "aglomerate"];
+  const allowedProductTypes = ["paving", "marble", "agglomerate"];
 
   if (!allowedProductTypes.includes(productType)) {
     return res
@@ -49,9 +56,15 @@ const createProduct = asyncWrapperCreate(async (req, res, next) => {
   const productModel = req.productModel;
 
   const { productname, price, description, size } = req.body;
-  const image = req.file
-    ? `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
-    : "";
+  // const image = req.files.map((file) => ({
+  //   url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
+  // }));
+  const image = JSON.stringify(
+    req.files.map((file) => ({
+      url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
+    }))
+  );
+  console.log(req.files);
   const data = { productname, price, description, size, image };
 
   // Call service function to create product
@@ -155,8 +168,6 @@ const deleteAllProducts = asyncWrapper(async (req, res, next) => {
     message: SuccessCode.ProductsDeleted,
   });
 });
-
-
 
 module.exports = {
   createProduct,

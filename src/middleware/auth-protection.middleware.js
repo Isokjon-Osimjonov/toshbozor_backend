@@ -47,14 +47,14 @@ const protect = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  req.admin = admin;
+  req.user = admin;
   res.locals.admin = admin;
   next();
 });
 
 //Grant admin access middleware
 const adminAccess = (req, res, next) => {
-  if (!req.admin.isAdmin) {
+  if (!req.user.isAdmin) {
     return next(
       new AppError(
         "You are not allowed to perform this action",

@@ -1,23 +1,33 @@
 const nodemailer = require("nodemailer");
 const pug = require("pug");
 const htmlToText = require("html-to-text");
+const { google } = require("googleapis");
 
-module.exports = class Email {
-  constructor(user, url) {
-    this.to = user.email;
-    this.username = user.username;
-    this.url = url;
-    this.from = `Toshbozor <${process.env.EMAIL_FROM}>`;
-  }
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_ID_SECRET = process.env.CLIENT_ID_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
 
-  newTransport() {
+const oAuth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_ID_SECRET,
+  REDIRECT_URI
+);
+oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+async function newTransport() {
+  try {
     if (process.env.NODE_ENV === "production") {
       // Sendgrid
       return nodemailer.createTransport({
-        service: "SendGrid",
+        service: "gmail",
         auth: {
-          user: process.env.SENDGRID_USERNAME,
-          pass: process.env.SENDGRID_PASSWORD,
+          type: "OAuth2",
+          user: "toshbozor.uz@gmail.com",
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_ID_SECRET,
+          refreshToken: REFRESH_TOKEN,
+          accessToken: oAuth2Client.getAccessToken(),
         },
       });
     }
@@ -30,38 +40,80 @@ module.exports = class Email {
         pass: process.env.EMAIL_PASSWORD,
       },
     });
+  } catch (error) {
+    throw new Error(`Could not create transporter: ${error}`);
   }
+}
 
-  // Send the actual email
-  async send(template, subject) {
+async function sendEmail(user, url, template, subject) {
+  try {
+    const from = `Toshbozor <${process.env.EMAIL_FROM}>`;
+    const to = user.email;
+    const username = user.username;
+
     // 1) Render HTML based on a pug template
     const html = pug.renderFile(`${__dirname}/../views/${template}.pug`, {
-      username: this.username,
-      url: this.url,
+      username,
+      url,
       subject,
+      otp,
     });
 
     // 2) Define email options
     const mailOptions = {
-      from: this.from,
-      to: this.to,
+      from,
+      to,
       subject,
       html,
-      //   text: htmlToText.fromString(html),
+      // text: htmlToText.fromString(html),
     };
 
     // 3) Create a transport and send email
-    await this.newTransport().sendMail(mailOptions);
+    const transport = await newTransport();
+    await transport.sendMail(mailOptions);
+  } catch (error) {
+    throw new Error(`Could not send email: ${error}`);
   }
+}
 
-  async sendWelcome() {
-    await this.send("welcome", "Welcome to the Toshbozor Family!");
+async function sendWelcomeEmail(user, url) {
+  try {
+    await sendEmail(user, url, "welcome", "Welcome to the Toshbozor Family!");
+  } catch (error) {
+    // Handle error
+    console.error(`Error sending welcome email: ${error}`);
   }
+}
 
-  async sendPasswordReset() {
-    await this.send(
+async function sendPasswordResetEmail(user, url) {
+  try {
+    await sendEmail(
+      user,
+      url,
       "passwordReset",
       "Your password reset token (valid for only 10 minutes)"
     );
+  } catch (error) {
+    // Handle error
+    console.error(`Error sending password reset email: ${error}`);
   }
+}
+
+async function sendInfoUpdateEmail(user, otp) {
+  try {
+    await sendEmail(
+      user,
+      otp,
+      "verificationOTP",
+      "Your verification OTP (valid for only 10 minutes)"
+    );
+  } catch (error) {
+    // Handle error
+    console.error(`Error sending password reset email: ${error}`);
+  }
+}
+module.exports = {
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
+  sendInfoUpdateEmail,
 };

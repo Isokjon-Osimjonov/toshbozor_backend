@@ -1,8 +1,8 @@
 extends baseEmail
 
 block content
-  p Hi #{username},
-  p Welcome to Toshbozor, we're glad to have you 🎉
+  p Hi wellcome to Toshbozor! ,
+  p Your sign up OTP is: #{otp}.
   table.btn.btn-primary(role='presentation', border='0', cellpadding='0', cellspacing='0')
     tbody
       tr
@@ -11,4 +11,4 @@ block content
             tbody
               tr
                 td
-                  a(href=`${url}`, target='_blank') Visit Toshbozor
+  p If you didn't forget your password, please ignore this email!

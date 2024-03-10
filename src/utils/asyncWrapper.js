@@ -1,8 +1,9 @@
 const {
   handleCreateError,
   handleValidationError,
-} = require("../utils/errorHandlers.js");
+} = require("./product-create-err-handler.js");
 
+//This function is used to handle errors in the create product route
 const asyncWrapperCreate = (fn) => {
   // Return middleware function for handling HTTP requests
   return async (req, res, next) => {
@@ -19,6 +20,9 @@ const asyncWrapperCreate = (fn) => {
     }
   };
 };
+
+
+//This function is used to handle errors 
 const asyncWrapper = (fn) => {
   // Return middleware function for handling HTTP requests
   return async (req, res, next) => {
