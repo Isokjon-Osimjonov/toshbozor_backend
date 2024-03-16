@@ -6,4 +6,6 @@ exports.StatusCode = {
   NotFound: 404,
   ServerError: 500,
   NoContent: 204,
+  Pending: 202,
+  Forbidden: 403,
 };

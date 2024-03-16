@@ -45,7 +45,7 @@ async function newTransport() {
   }
 }
 
-async function sendEmail(user, url, template, subject) {
+async function sendEmail(user, url, template, subject, otp) {
   try {
     const from = `Toshbozor <${process.env.EMAIL_FROM}>`;
     const to = user.email;
@@ -67,7 +67,6 @@ async function sendEmail(user, url, template, subject) {
       html,
       // text: htmlToText.fromString(html),
     };
-
     // 3) Create a transport and send email
     const transport = await newTransport();
     await transport.sendMail(mailOptions);
@@ -76,7 +75,7 @@ async function sendEmail(user, url, template, subject) {
   }
 }
 
-async function sendWelcomeEmail(user, url) {
+async function sendWelcomeEmail(user) {
   try {
     await sendEmail(user, url, "welcome", "Welcome to the Toshbozor Family!");
   } catch (error) {
@@ -99,21 +98,24 @@ async function sendPasswordResetEmail(user, url) {
   }
 }
 
-async function sendInfoUpdateEmail(user, otp) {
+async function sendOTPEmail(user, otp) {
   try {
     await sendEmail(
       user,
-      otp,
+      null,
       "verificationOTP",
-      "Your verification OTP (valid for only 10 minutes)"
+      "Your verification OTP (valid for only 10 minutes)",
+      otp
     );
   } catch (error) {
     // Handle error
-    console.error(`Error sending password reset email: ${error}`);
+    console.error(
+      `Error sending password reset email: ${(error, error.stack)}`
+    );
   }
 }
 module.exports = {
   sendWelcomeEmail,
   sendPasswordResetEmail,
-  sendInfoUpdateEmail,
+  sendOTPEmail,
 };

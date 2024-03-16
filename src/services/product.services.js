@@ -1,6 +1,13 @@
 const productRepo = require("../repositories/product.repo");
+const AppError = require("../utils/appError");
 
 const create = async (model, data) => {
+  const isProductExist = await productRepo.findOne(model, {
+    productname: data.productname,
+  });
+  if (isProductExist) {
+    throw new AppError("Product with this name already exist!", 400);
+  }
   return await productRepo.create(model, data);
 };
 

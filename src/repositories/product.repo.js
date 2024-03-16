@@ -3,6 +3,9 @@ const AppError = require("../utils/appError.js");
 const create = async (model, data) => {
   return model.create(data);
 };
+const findOne = async (model,criteria) => {
+  return await model.findOne(criteria);
+};
 
 const getAll = async (model) => {
   const result = await model.find();
@@ -50,4 +53,5 @@ module.exports = {
   update,
   deleteProduct,
   deleteAll,
+  findOne,
 };

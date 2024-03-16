@@ -1,43 +1,34 @@
-//   res.cookie("jwt", token, {
-//     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-//     httpOnly: true,
-//     secure: req.secure || req.headers["x-forwarded-proto"] === "https",
-//   });
-
-// Remove password from output
-//   data.password = undefined;
-
 const jwt = require("jsonwebtoken");
+const {
+  signAccessToken,
+  signRefreshToken,
+} = require("../helpers/token.helpers");
 
-const signToken = (id, username) => {
-  return jwt.sign({ id, username }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
+const authResponseSender = async (data, statusCode, req, res) => {
+  try {
+    // Check if data is defined and contains required properties
+    if (!data || !data._id || !data.username) {
+      return res.status(500).json({ error: "Invalid data" });
+    }
+
+    // Sign access token
+    const accessToken = await signAccessToken(data._id);
+
+    // Sign refresh token
+    const refreshToken = await signRefreshToken(data._id);
+    // Remove password from data object
+    data.password = undefined;
+    // Send response with both tokens
+    res.status(statusCode).json({
+      status: "success",
+      accessToken,
+      refreshToken,
+      data,
+    });
+  } catch (error) {
+    console.error("Error in authResponseSender:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-const responseHandler = (data, statusCode, req, res) => {
-  // Check if data is undefined or null
-  if (!data) {
-    return res.status(500).json({ error: "Data is undefined or null" });
-  }
-
-  // Check if data has the expected properties
-  if (!data._id || !data.username) {
-    return res
-      .status(500)
-      .json({ error: "Data is missing required properties" });
-  }
-
-  const token = signToken(data._id, data.username);
-
-  // Remove password from output
-  data.password = undefined;
-
-  res.status(statusCode).json({
-    status: "success",
-    token,
-    data,
-  });
-};
-
-module.exports = responseHandler;
+module.exports = authResponseSender;

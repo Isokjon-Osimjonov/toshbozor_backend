@@ -8,6 +8,11 @@ const pavingSchema = new Schema(
       maxlenght: [50, "A product name cannot be longer than 50 characters"],
       minlenght: [3, "A product name cannot be shorter than 3 characters"],
     },
+    type: {
+      type: String,
+      required: [true, "A product must have a type"],
+      enum: ["paving", "curb"],
+    },
     price: {
       type: String,
       required: [true, "A product must have a price"],

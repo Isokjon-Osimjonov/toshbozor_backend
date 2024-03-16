@@ -9,12 +9,6 @@ const { SuccessCode } = require("../enums/success-code.enum.js");
 
 // Middleware for uploading product photo.
 const photoUpload = upload.array("image", 10);
-// const photoUpload = upload.fields([
-//   {
-//     name: "image",
-//     maxCount: 7,
-//   },
-// ]);
 
 // =================Validate product type and model================================
 const validateProductTypeAndModel = (req, res, next) => {
@@ -55,24 +49,21 @@ const validateProductTypeAndModel = (req, res, next) => {
 const createProduct = asyncWrapperCreate(async (req, res, next) => {
   const productModel = req.productModel;
 
-  const { productname, price, description, size } = req.body;
-  // const image = req.files.map((file) => ({
-  //   url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
-  // }));
+  const { productname, price, description, size, type } = req.body;
+
   const image = JSON.stringify(
     req.files.map((file) => ({
       url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
     }))
   );
-  console.log(req.files);
-  const data = { productname, price, description, size, image };
+  const data = { productname, price, description, size, image, type };
 
   // Call service function to create product
   const result = await productService.create(productModel, data);
 
   // Send response
   res.status(StatusCode.Created).json({
-    message: SuccessCode.ProductCreated,
+    status: SuccessCode.Success,
     data: result,
   });
 });
@@ -88,7 +79,7 @@ const getAllProducts = asyncWrapper(async (req, res, next) => {
 
   // Send response
   res.status(StatusCode.Ok).json({
-    message: SuccessCode.ProductsRetrieved,
+    status: SuccessCode.Success,
     data: result,
   });
 });
@@ -106,7 +97,7 @@ const getProductById = asyncWrapper(async (req, res, next) => {
 
   // Send response
   res.status(StatusCode.Ok).json({
-    message: SuccessCode.ProductRetrieved,
+    status: SuccessCode.Success,
     data: result,
   });
 });
@@ -117,20 +108,22 @@ const getProductById = asyncWrapper(async (req, res, next) => {
 // @access: private / Admin
 const updateProduct = asyncWrapperCreate(async (req, res, next) => {
   const productModel = req.productModel;
+
   const { id } = req.params;
+
   const { productname, price, description, size } = req.body;
+
   const image = req.file
     ? `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
     : "";
   const data = { productname, price, description, size, image };
 
-  console.log(data);
   // Call service function to update product
   const result = await productService.update(productModel, id, data);
 
   // Send response
   res.status(StatusCode.Ok).json({
-    message: SuccessCode.ProductUpdated,
+    status: SuccessCode.Success,
     data: result,
   });
 });
@@ -143,13 +136,13 @@ const deleteProduct = asyncWrapper(async (req, res, next) => {
   const productModel = req.productModel;
 
   const { id } = req.params;
+
   // Call service function to delete product
-  const result = await productService.deleteProduct(productModel, id);
+  await productService.deleteProduct(productModel, id);
 
   // Send response
   res.status(StatusCode.Ok).json({
-    message: SuccessCode.ProductDeleted,
-    data: null,
+    status: SuccessCode.Success,
   });
 });
 
@@ -165,7 +158,7 @@ const deleteAllProducts = asyncWrapper(async (req, res, next) => {
 
   // Send response
   res.status(StatusCode.Ok).json({
-    message: SuccessCode.ProductsDeleted,
+    status: SuccessCode.Success,
   });
 });
 

@@ -1,5 +1,5 @@
 const app = require("./app");
-
+const initCronJob = require("./src/jobs/clearExpiredFiledsCron");
 const { PORT } = require("./src/config/environments.config");
 
 const { databaseConnection } = require("./src/config/db.config");
@@ -8,6 +8,7 @@ const server = app.listen(PORT, async () => {
   try {
     console.log(`Server running on port: ${PORT} 🚀`);
     await databaseConnection();
+    initCronJob();
   } catch (err) {
     console.error(`Error starting server: ${err.message}`);
     process.exit(1);
