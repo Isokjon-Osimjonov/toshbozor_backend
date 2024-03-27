@@ -73,15 +73,13 @@ const signUp = asyncWrapper(async (req, res, next) => {
   if (!removeUnverifiedUsersTimeout) {
     removeUnverifiedUsersTimeout = setTimeout(async () => {
       try {
-        console.log("Removing unverified users...");
         await removeUnverifiedUsers();
-        console.log("Unverified users removed successfully.");
       } catch (error) {
-        console.error("Error removing unverified users:", error);
+        throw error;
       } finally {
-        removeUnverifiedUsersTimeout = null; // Reset the timeout flag
+        removeUnverifiedUsersTimeout = null;
       }
-    }, 10 * 60 * 1000); // 10 minutes delay
+    }, 10 * 60 * 1000);
   }
 });
 
@@ -123,8 +121,6 @@ const signIn = asyncWrapper(async (req, res, next) => {
 
   // Call service function to SignIn
   const user = await userService.signIn(username, password, req, res);
-
-  console.log("SignIn=======", req.headers);
 
   //Sending response with user data
   await authResponseSender(user, StatusCode.Ok, req, res);

@@ -17,13 +17,19 @@ const aglomerateSchema = new Schema(
       type: String,
       required: [true, "A product must have a description"],
     },
-    size: {
+
+    image: [],
+    height: {
       type: String,
-      required: [true, "A product must have a size"],
+      required: [true, "A product must have a height"],
     },
-    image: {
+    width: {
       type: String,
-      required: [true, "A product must have an image"],
+      required: [true, "A product must have a width"],
+    },
+    length: {
+      type: String,
+      required: [true, "A product must have a length"],
     },
   },
   {

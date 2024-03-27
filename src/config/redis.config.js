@@ -6,7 +6,7 @@ const client = redis.createClient({
 });
 
 client.on("connect", () => {
-  console.log("Connected to Redis12345");
+  console.log("Connected to Redis");
 });
 
 client.on("error", (err) => {
@@ -24,14 +24,5 @@ client.on("end", () => {
 process.on("SIGINT", () => {
   client.quit();
 });
-
-// client
-//   .connect()
-//   .then(() => {
-//     console.log("Connected to Redis");
-//   })
-//   .catch((err) => {
-//     console.log(err.message);
-//   });
 
 module.exports = client;

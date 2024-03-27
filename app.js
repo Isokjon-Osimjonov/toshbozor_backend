@@ -10,8 +10,9 @@ const cookieParser = require("cookie-parser");
 const AppError = require("./src/utils/appError");
 const environments = require("./src/config/environments.config");
 const indexRoutes = require("./src/routes");
-const globalErrorHandler = require("./src/middleware/error-handler.middleware");
-require("./src/redis/redis");
+const globalErrorHandler = require("./src/middleware/global-error-handler.middleware");
+require("./src/config/redis.config");
+
 // express app initialization
 const app = express();
 

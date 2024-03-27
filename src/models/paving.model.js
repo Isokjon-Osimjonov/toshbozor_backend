@@ -1,3 +1,4 @@
+const { required } = require("joi");
 const { Schema, model } = require("mongoose");
 const pavingSchema = new Schema(
   {
@@ -21,9 +22,18 @@ const pavingSchema = new Schema(
       type: String,
       required: [true, "A product must have a description"],
     },
-    image: {
+    image: [],
+    height: {
       type: String,
-      required: [true, "A product must have an image"],
+      required: [true, "A product must have a height"],
+    },
+    width: {
+      type: String,
+      required: [true, "A product must have a width"],
+    },
+    length: {
+      type: String,
+      required: [true, "A product must have a length"],
     },
   },
   {

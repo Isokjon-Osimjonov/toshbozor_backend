@@ -10,54 +10,71 @@ const {
   verifyRefreshToken,
   extractRefreshToken,
 } = require("../helpers/token.helpers");
+
 // =================Acces protection middleware================================
+
 const protect = asyncWrapper(async (req, res, next) => {
-  //Getting token and check of it's here
-  let token = await extractTokenFromHeaders(req);
+  // Extract access token from request headers
+  const accessToken = await extractTokenFromHeaders(req);
 
-  //Verifying token
-  const decoded = await verifyToken(token);
+  try {
+    // Verify access token
+    const decoded = await verifyToken(accessToken);
 
-  // Checking if user still exists
-  const user = await User.findById(decoded.id);
-  if (!user) {
-    return next(
-      new AppError(
-        "You are not logged in! Please log in to get access.",
-        StatusCode.Unauthorized
-      )
-    );
+    // Check if user exists
+    let user = await User.findById(decoded.id);
+    if (!user) {
+      return next(new AppError("User not found.", StatusCode.Unauthorized));
+    }
+
+    // Check if user's password has been changed
+    if (user.isPasswordChanged(decoded.iat)) {
+      return next(
+        new AppError(
+          "User recently changed password. Please log in again.",
+          StatusCode.Unauthorized
+        )
+      );
+    }
+
+    req.user = user;
+
+    return next();
+  } catch (error) {
+    // Handle token expiration
+    if (error.name === "TokenExpiredError") {
+      try {
+        // Extract and verify refresh token
+        const refreshToken = await extractRefreshToken(res, accessToken);
+        const decodedUserId = await verifyRefreshToken(refreshToken);
+
+        // Generate new access token
+        const newAccessToken = await signAccessToken(decodedUserId);
+
+        // Set new access token in response header
+        res.setHeader("Authorization", `Bearer ${newAccessToken}`);
+
+        // Fetch user again using decoded user ID
+        const user = await User.findById(decodedUserId);
+        if (!user) {
+          return next(new AppError("User not found.", StatusCode.Unauthorized));
+        }
+
+        req.user = user;
+
+        return next();
+      } catch (tokenRefreshingError) {
+        return next(
+          new AppError("Invalid refresh token.", StatusCode.Unauthorized)
+        );
+      }
+    } else {
+      return next(
+        new AppError("Authentication failed.", StatusCode.Unauthorized)
+      );
+    }
   }
-
-  //Cheking if user changed password after the token was issued
-  if (user.isPasswordChanged(decoded.iat)) {
-    return next(
-      new AppError(
-        "User recently changed password! Please log in again.",
-        StatusCode.Unauthorized
-      )
-    );
-  }
-
-  req.user = user;
-  res.locals.user = user;
-  next();
 });
-
-module.exports = protect;
-
-//Grant user access middleware
-// const userAccess = (req, res, next) => {
-//   if (!req.user.isuser) {
-//     return next(
-//       new AppError(
-//         "You are not allowed to perform this action",
-//         StatusCode.Unauthorized
-//       )
-//     );
-//   }
-//   next();
-// };
 
 // =================Role based access================================
 // @desc: role based acccess

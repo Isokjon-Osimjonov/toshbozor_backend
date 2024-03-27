@@ -18,10 +18,7 @@ const clearExpiredFileds = async () => {
       user.otpExpires = undefined;
       await user.save({ validateBeforeSave: false });
     }
-
-    console.log("Expired password reset tokens cleared successfully.");
   } catch (error) {
-    console.error("Error clearing expired password reset tokens:", error);
     throw error;
   }
 };

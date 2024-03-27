@@ -1,7 +1,4 @@
-const {
-  handleCreateError,
-  handleUpdateError,
-} = require("./product-create-err-handler.js");
+const { handleCreateError } = require("./product-create-err-handler.js");
 
 const asyncWrapperCreate = (fn) => {
   return async (req, res, next) => {
@@ -18,7 +15,6 @@ const asyncWrapper = (fn) => {
     try {
       await fn(req, res, next);
     } catch (error) {
-      // handleUpdateError(req, res, error);
       next(error);
     }
   };

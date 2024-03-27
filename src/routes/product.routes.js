@@ -15,17 +15,18 @@ const {
 const { protect, access } = require("../middleware/auth-protection.middleware");
 
 router.use("/:productType", validateProductTypeAndModel);
+
 // Routes for products
 router
   .route("/:productType")
-  .post(protect, access("admin", "assistant"), photoUpload, createProduct)
+  .post(protect, photoUpload, createProduct)
   .get(getAllProducts)
-  .delete(protect, access("admin", "assistant"), deleteAllProducts);
+  .delete(protect, deleteAllProducts);
 
 router
   .route("/:productType/:id")
+  .delete(protect, access("admin"), deleteProduct)
   .get(getProductById)
-  .put(protect, access("admin", "assistant"), photoUpload, updateProduct)
-  .delete(protect, access("admin"), deleteProduct);
+  .put(protect, photoUpload, updateProduct);
 
 module.exports = router;

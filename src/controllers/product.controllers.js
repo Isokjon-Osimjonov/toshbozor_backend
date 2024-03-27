@@ -29,7 +29,7 @@ const validateProductTypeAndModel = (req, res, next) => {
     case "marble":
       model = require("../models/marble.model.js");
       break;
-    case "aglomerate":
+    case "agglomerate":
       model = require("../models/aglomerate.model.js");
       break;
     default:
@@ -49,17 +49,28 @@ const validateProductTypeAndModel = (req, res, next) => {
 const createProduct = asyncWrapperCreate(async (req, res, next) => {
   const productModel = req.productModel;
 
-  const { productname, price, description, size, type } = req.body;
+  const { productname, price, description, size, type, height, width, length } =
+    req.body;
 
-  const image = JSON.stringify(
-    req.files.map((file) => ({
-      url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
-    }))
-  );
-  const data = { productname, price, description, size, image, type };
+  const images = req.files.map((file) => ({
+    url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
+  }));
+  const data = {
+    productname,
+    price,
+    description,
+    size,
+    image: images,
+    type,
+    height,
+    width,
+    length,
+  };
 
   // Call service function to create product
-  const result = await productService.create(productModel, data);
+  const result = await productService.create(productModel, data, {
+    runValidators: true,
+  });
 
   // Send response
   res.status(StatusCode.Created).json({

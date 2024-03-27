@@ -1,7 +1,7 @@
 // helpers/token.helpers.js
 const jwt = require("jsonwebtoken");
 const AppError = require("../utils/appError");
-const client = require("../config/redis.config");
+const client = require("../redis/redis");
 const parseDurationToSeconds = require("../utils/parseDurationToSeconds");
 const { jwtDecode } = require("jwt-decode");
 const signAccessToken = (id) => {
@@ -74,9 +74,9 @@ const verifyRefreshToken = (refreshToken) => {
           return reject(
             new AppError(" can not verrify refresh token Unauthorized", 401)
           );
-        const id = payload.aud; // Correctly extract the user ID
+
+        const id = payload.aud;
         client.GET(String(id), (err, result) => {
-          // Correct typo in String(id)
           if (err) {
             reject(new AppError("ServerError", 500));
             return;
@@ -99,7 +99,16 @@ const extractRefreshToken = (res, accessToken) => {
         return;
       }
 
-      resolve(refreshToken);
+      jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_TOKEN_SECRET,
+        (err, result) => {
+          if (err) {
+            return res.sendStatus(403);
+          }
+          resolve(result);
+        }
+      );
     });
   });
 };

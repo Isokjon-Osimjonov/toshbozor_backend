@@ -1,5 +1,5 @@
 const app = require("./app");
-const initCronJob = require("./src/jobs/clearExpiredFiledsCron");
+const initCronJob = require("./src/helpers/clearExpiredFiledsCron");
 const { PORT } = require("./src/config/environments.config");
 
 const { databaseConnection } = require("./src/config/db.config");
