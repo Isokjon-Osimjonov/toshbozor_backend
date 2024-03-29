@@ -31,6 +31,12 @@ const marbleSchema = new Schema(
       type: String,
       required: [true, "A product must have a length"],
     },
+    author: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Admin",
+      },
+    ],
   },
   {
     timestamps: true,

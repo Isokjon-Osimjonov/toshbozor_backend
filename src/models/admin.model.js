@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const generateOTP = require("../utils/otp-generator");
+const { ref } = require("joi");
 
 // Define the schema for the admin user
 const adminSchema = new Schema(
@@ -50,6 +51,12 @@ const adminSchema = new Schema(
       enum: ["admin", "assistant"],
       default: "assistant",
     },
+    products: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Marble",
+      },
+    ],
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,

@@ -53,7 +53,9 @@ const createProduct = asyncWrapperCreate(async (req, res, next) => {
     req.body;
 
   const images = req.files.map((file) => ({
-    url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
+    url: `${req.headers["x-forwarded-proto"] || req.protocol}://${req.get(
+      "host"
+    )}/images/${file.filename}`,
   }));
   const data = {
     productname,
