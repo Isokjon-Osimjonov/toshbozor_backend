@@ -1,4 +1,4 @@
-const AdminSchema = require("../models/admin.model");
+const AdminSchema = require("../models/user.model");
 
 const clearExpiredFileds = async () => {
   try {

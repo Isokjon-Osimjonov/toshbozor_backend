@@ -9,24 +9,24 @@ const {
   updateProduct,
   deleteProduct,
   deleteAllProducts,
-  validateProductTypeAndModel,
+  getProductsByCategory,
 } = require("../controllers/product.controllers");
 
 const { protect, access } = require("../middleware/auth-protection.middleware");
 
-router.use("/:productType", validateProductTypeAndModel);
-
 // Routes for products
 router
-  .route("/:productType")
-  .post(protect, photoUpload, createProduct)
+  .route("/")
+  .post(protect, access("admin", "assistant"), photoUpload, createProduct)
   .get(getAllProducts)
-  .delete(protect, deleteAllProducts);
+  .delete(protect, access("admin"), deleteAllProducts);
 
 router
-  .route("/:productType/:id")
+  .route("/:id")
   .delete(protect, access("admin"), deleteProduct)
   .get(getProductById)
-  .put(protect, photoUpload, updateProduct);
+  .put(protect, access("admin", "assistant"), photoUpload, updateProduct);
+
+router.route("/category/:category").get(getProductsByCategory);
 
 module.exports = router;

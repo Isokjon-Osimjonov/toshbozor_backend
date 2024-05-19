@@ -12,11 +12,12 @@ const storage = multer.diskStorage({
     );
   },
 });
+const multerStorage = multer.memoryStorage();
 
 // Initializing upload function
 const fileSizeLimit = 10 * 1024 * 1024 * 3;
 const photoUpload = multer({
-  storage: storage,
+  storage: multerStorage,
   limits: { fileSize: fileSizeLimit },
   fileFilter: function (req, file, cb) {
     checkFileTypes(file, cb);

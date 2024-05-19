@@ -6,170 +6,220 @@ const {
 const upload = require("../utils/photoUpload.js");
 const { StatusCode } = require("../enums/status-code.enum.js");
 const { SuccessCode } = require("../enums/success-code.enum.js");
+const userRepo = require("../repositories/user.repo.js");
+const productRepo = require("../repositories/product.repo.js");
+const productModel = require("../models/product.model.js");
+const sharp = require("sharp");
+const model = productModel;
+const path = require("path");
+const { cleanupFiles } = require("../utils/product-create-err-handler.js");
+const { unlinkFile, detectImagesPath } = require("../utils/fileManager");
 
 // Middleware for uploading product photo.
 const photoUpload = upload.array("image", 10);
 
-// =================Validate product type and model================================
-const validateProductTypeAndModel = (req, res, next) => {
-  const { productType } = req.params;
-  const allowedProductTypes = ["paving", "marble", "agglomerate"];
+const resizeImage = asyncWrapper(async (file, req) => {
+  if (!file) throw new AppError("Please upload an image", 400);
 
-  if (!allowedProductTypes.includes(productType)) {
-    return res
-      .status(StatusCode.BadRequest)
-      .json({ message: "Invalid product type" });
+  try {
+    const originalMetadata = await sharp(file.buffer).metadata();
+    const originalWidth = originalMetadata.width;
+    const originalHeight = originalMetadata.height;
+
+    const filename = `productImage-${Date.now()}.webp`;
+
+    const imagePath = path.join("public/images/product_images", filename);
+
+    await sharp(file.buffer)
+      .resize({
+        width: originalWidth,
+        height: originalHeight,
+        fit: "fill",
+      })
+      .toFormat("webp")
+      .toFile(imagePath);
+
+    const imageUrl = `${req.protocol}://${req.get(
+      "host"
+    )}/images/product_images/${filename}`;
+    return { imageUrl, imagePath };
+  } catch (error) {
+    console.error("Error processing image:", error);
+    throw new AppError("Image processing failed", 500);
+  }
+});
+
+const processImages = async (files, req) => {
+  const images = [];
+  const imagePaths = [];
+
+  for (const file of files) {
+    const { imageUrl, imagePath } = await resizeImage(file, req);
+    images.push({ url: imageUrl });
+    imagePaths.push(imagePath);
   }
 
-  let model;
-  switch (productType) {
-    case "paving":
-      model = require("../models/paving.model.js");
-      break;
-    case "marble":
-      model = require("../models/marble.model.js");
-      break;
-    case "agglomerate":
-      model = require("../models/aglomerate.model.js");
-      break;
-    default:
-      return res
-        .status(StatusCode.BadRequest)
-        .json({ message: "Invalid product type" });
-  }
-
-  req.productModel = model;
-  next();
+  return { images, imagePaths };
 };
-
-// =================Create new product================================
 // @desc: Create new product
 // @route: POST /api/v1/product/:productType
 // @access: private / Admin
 const createProduct = asyncWrapperCreate(async (req, res, next) => {
-  const productModel = req.productModel;
-
-  const { productname, price, description, size, type, height, width, length } =
-    req.body;
-
-  const images = req.files.map((file) => ({
-    url: `${req.headers["x-forwarded-proto"] || req.protocol}://${req.get(
-      "host"
-    )}/images/${file.filename}`,
-  }));
-  const data = {
+  const {
+    category,
     productname,
     price,
     description,
     size,
-    image: images,
-    type,
     height,
     width,
     length,
-  };
+  } = req.body;
+  let imagePaths = [];
 
-  // Call service function to create product
-  const result = await productService.create(productModel, data, {
-    runValidators: true,
-  });
+  try {
+    const { images, imagePaths: processedImagePaths } = await processImages(
+      req.files,
+      req
+    );
+    imagePaths = processedImagePaths;
 
-  // Send response
-  res.status(StatusCode.Created).json({
-    status: SuccessCode.Success,
-    data: result,
-  });
+    const data = {
+      category,
+      productname,
+      price,
+      description,
+      size,
+      image: images,
+      height,
+      width,
+      length,
+    };
+
+    const result = await productService.create(model, data, {
+      runValidators: true,
+    });
+
+    const productCreator = req.user._id;
+    await userRepo.findByIdAndUpdate(productCreator, {
+      $push: { products: result._id },
+    });
+
+    res.status(StatusCode.Created).json({
+      status: SuccessCode.Success,
+      data: result,
+    });
+  } catch (error) {
+    cleanupFiles(imagePaths);
+    next(error);
+  }
 });
 
-// =================Get all products================================
 // @desc: Get all products
 // @route: GET /api/v1/product/:productType
 // @access: private / Admin
 const getAllProducts = asyncWrapper(async (req, res, next) => {
   const productModel = req.productModel;
-  // Call service function to get all products
   const result = await productService.getAll(productModel);
 
-  // Send response
   res.status(StatusCode.Ok).json({
     status: SuccessCode.Success,
     data: result,
   });
 });
 
-// =================Get product================================
+// @desc: Get products by category
+// @route: GET /api/v1/product/:category
+// @access: private / Admin & Assistant
+const getProductsByCategory = asyncWrapper(async (req, res, next) => {
+  const { category } = req.params;
+  const result = await productRepo.getByCategory(model, category);
+
+  res.status(StatusCode.Ok).json({
+    status: SuccessCode.Success,
+    data: result,
+  });
+});
+
 // @desc: Get product
 // @route: GET /api/v1/product/:productType/:id
 // @access: private / Admin
 const getProductById = asyncWrapper(async (req, res, next) => {
-  const productModel = req.productModel;
-
   const { id } = req.params;
-  // Call service function to get product by id
-  const result = await productService.getById(productModel, id);
+  const result = await productService.getById(model, id);
 
-  // Send response
   res.status(StatusCode.Ok).json({
     status: SuccessCode.Success,
     data: result,
   });
 });
 
-// =================Update product================================
 // @desc: Update product
 // @route: PUT /api/v1/product/:productType/:id
 // @access: private / Admin
 const updateProduct = asyncWrapperCreate(async (req, res, next) => {
-  const productModel = req.productModel;
-
   const { id } = req.params;
-
   const { productname, price, description, size } = req.body;
+  let imagePaths = [];
 
-  const image = req.file
-    ? `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
-    : "";
-  const data = { productname, price, description, size, image };
+  try {
+    const { images, imagePaths: processedImagePaths } = await processImages(
+      req.files,
+      req
+    );
+    imagePaths = processedImagePaths;
+    const data = { productname, price, description, size, image: images };
 
-  // Call service function to update product
-  const result = await productService.update(productModel, id, data);
+    const result = await productService.update(model, id, data);
 
-  // Send response
-  res.status(StatusCode.Ok).json({
-    status: SuccessCode.Success,
-    data: result,
-  });
+    res.status(StatusCode.Ok).json({
+      status: SuccessCode.Success,
+      data: result,
+    });
+  } catch (error) {
+    cleanupFiles(imagePaths);
+    next(error);
+  }
 });
 
-// =================Delete product================================
 // @desc: Delete product
 // @route: DELETE /api/v1/product/:productType/:id
 // @access: private / Admin
 const deleteProduct = asyncWrapper(async (req, res, next) => {
-  const productModel = req.productModel;
-
   const { id } = req.params;
 
-  // Call service function to delete product
-  await productService.deleteProduct(productModel, id);
+  const product = await productService.getById(model, id);
+  if (!product) {
+    throw new AppError("Product not found", 404);
+  }
+  const filename = product.image;
+  const basePath = path.join(__dirname, "../../public/images/product_images");
+  const filePaths = detectImagesPath(filename, basePath);
 
-  // Send response
+  for (const filePath of filePaths) {
+    await unlinkFile(filePath);
+  }
+
+  await productService.deleteProduct(model, id);
+
+  const productCreator = req.user._id;
+  await userRepo.findByIdAndUpdate(productCreator, {
+    $pull: {
+      products: id,
+    },
+  });
+
   res.status(StatusCode.Ok).json({
     status: SuccessCode.Success,
   });
 });
 
-// =================Delete all product================================
 // @desc: Delete all product
 // @route: DELETE /api/v1/product/:productType
 // @access: private / Admin
 const deleteAllProducts = asyncWrapper(async (req, res, next) => {
-  const productModel = req.productModel;
+  await productService.deleteAllProducts(model);
 
-  // Call service function to delete all products
-  await productService.deleteAllProducts(productModel);
-
-  // Send response
   res.status(StatusCode.Ok).json({
     status: SuccessCode.Success,
   });
@@ -178,10 +228,11 @@ const deleteAllProducts = asyncWrapper(async (req, res, next) => {
 module.exports = {
   createProduct,
   photoUpload,
+  resizeImage,
   getAllProducts,
   getProductById,
   updateProduct,
   deleteProduct,
   deleteAllProducts,
-  validateProductTypeAndModel,
+  getProductsByCategory,
 };

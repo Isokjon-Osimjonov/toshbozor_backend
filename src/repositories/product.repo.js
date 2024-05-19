@@ -3,7 +3,8 @@ const AppError = require("../utils/appError.js");
 const create = async (model, data) => {
   return model.create(data);
 };
-const findOne = async (model,criteria) => {
+
+const findOne = async (model, criteria) => {
   return await model.findOne(criteria);
 };
 
@@ -17,7 +18,7 @@ const getAll = async (model) => {
 };
 
 const getById = async (model, id) => {
-  const product = await model.findById(id);
+  const product = await model.findById(id).exec();
   if (!product) {
     throw new AppError("Product not found", 404);
   }
@@ -46,6 +47,15 @@ const deleteAll = async (model) => {
   return await model.deleteMany();
 };
 
+const getByCategory = async (model, category) => {
+  const result = await model.find({ category: category }).exec();
+  if (result.length === 0) {
+    return "No products found";
+  } else {
+    return result;
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -54,4 +64,5 @@ module.exports = {
   deleteProduct,
   deleteAll,
   findOne,
+  getByCategory,
 };

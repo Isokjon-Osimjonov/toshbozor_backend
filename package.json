@@ -33,7 +33,9 @@
     "pug": "^3.0.2",
     "redis": "^3.0.2",
     "redis-commander": "^0.8.0",
-    "validator": "^13.11.0"
+    "sharp": "^0.32.4",
+    "validator": "^13.11.0",
+    "winston": "^3.13.0"
   },
   "devDependencies": {
     "colors": "^1.4.0",

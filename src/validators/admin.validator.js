@@ -29,6 +29,7 @@ const adminValidationSchema = Joi.object({
   email: Joi.string().required().email(),
 
   role: Joi.string().valid("admin", "assistant").default("assistant"),
+  companyName: Joi.string().required(),
 });
 
 const validateAdminData = (data) => {
@@ -53,9 +54,13 @@ const adminValidationSchemaForUpdate = Joi.object({
     .min(4)
     .max(32)
     .pattern(/^\S*$/)
-    .message("Username can not contain spaces"),
+    .message("Username can not contain spaces")
+    .lowercase(),
 
-  // Remove password and passwordConfirm from the schema as they are not being updated
+  instagram: Joi.string(),
+  telegram: Joi.string(),
+  address: Joi.string(),
+  number: Joi.string(),
 });
 
 const validateAdminDataForUpdate = (data) => {

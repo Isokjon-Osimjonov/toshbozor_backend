@@ -8,7 +8,6 @@ const authResponseSender = require("../middleware/response-handler.middleware.js
 const filterObj = require("../utils/filterObj.js");
 const userRepo = require("../repositories/user.repo");
 const photoUpload = require("../utils/photoUpload.js");
-const { verifyRefreshToken } = require("../helpers/token.helpers.js");
 
 //Executing this function will remove all users that are not verified
 //this function runs when singUp-post method is made
@@ -29,12 +28,12 @@ const removeUnverifiedUsers = async () => {
 // =================User upload avatar middleware
 const uploadAvatar = photoUpload.single("avatar");
 
-// =================Admin sign up================================
 // @desc: User sign up
 // @route: POST /api/v1/user/signup
 // @access: private / Admin only accessable for admins
 const signUp = asyncWrapper(async (req, res, next) => {
-  const { fullName, username, password, email, passwordConfirm } = req.body;
+  const { fullName, username, password, email, passwordConfirm, companyName } =
+    req.body;
 
   // Validate admin data
   const validatedData = adminDataValidation.validateAdminData(req.body);
@@ -45,7 +44,8 @@ const signUp = asyncWrapper(async (req, res, next) => {
     !validatedData.username ||
     !validatedData.email ||
     !validatedData.password ||
-    !validatedData.passwordConfirm
+    !validatedData.passwordConfirm ||
+    !validatedData.companyName
   ) {
     return next(
       new AppError("Please provide all required fields", StatusCode.BadRequest)
@@ -58,12 +58,11 @@ const signUp = asyncWrapper(async (req, res, next) => {
     email: validatedData.email,
     password: validatedData.password,
     passwordConfirm: validatedData.passwordConfirm,
+    companyName: validatedData.companyName,
   };
 
-  // Call service function to create admin
   await userService.signUp(validData);
 
-  // Send response
   res.status(StatusCode.Pending).json({
     status: SuccessCode.Pending,
     message: "OTP send to your email please check your inbox",
@@ -90,26 +89,22 @@ const signUp = asyncWrapper(async (req, res, next) => {
 const verify = asyncWrapper(async (req, res, next) => {
   const { otp } = req.body;
 
-  // Check if otp is present
   if (!otp) {
     return next(new AppError("Please provide OTP", StatusCode.BadRequest));
   }
 
-  // Call service function to SignIn
   const user = await userService.verify(otp);
 
-  //Sending response with user data
   authResponseSender(user, StatusCode.Ok, req, res);
 });
 
 // =================Admin sign in================================
 // @desc: User sign in
 // @route: POST /api/v1/user/signin
-// @access: private / Admin
+// @access:  Admin / assistant
 const signIn = asyncWrapper(async (req, res, next) => {
   const { username, password } = req.body;
 
-  // Check if username and password present
   if (!username || !password) {
     return next(
       new AppError(
@@ -119,17 +114,15 @@ const signIn = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  // Call service function to SignIn
   const user = await userService.signIn(username, password, req, res);
 
-  //Sending response with user data
   await authResponseSender(user, StatusCode.Ok, req, res);
 });
 
 // =================Admin log out================================
 // @desc: User log out
 // @route: POST /api/v1/user/signout
-// @access: private / Admin
+// @access: Admin / assistant
 const signOut = (req, res) => {
   //Assigning token to null
   // res.cookie("jwt", "signedout", {
@@ -147,12 +140,11 @@ const signOut = (req, res) => {
 // =================Admin forgot password================================
 // @desc: User log out
 // @route: POST /api/v1/user/password_reset
-// @access: private / Admin
+// @access: private / Admin / asistant
 const forgotPassword = asyncWrapper(async (req, res, next) => {
-  // Call service function to forgot password
-  await userService.forgotPassword(req.body.username, req);
+  const { username } = req.user;
+  await userService.forgotPassword(username, req);
 
-  // Send response
   res.status(StatusCode.Ok).json({
     message: "Token sent to email!",
   });
@@ -161,38 +153,31 @@ const forgotPassword = asyncWrapper(async (req, res, next) => {
 // =================Admin reset password================================
 // @desc: User reset password
 // @route: POST /api/v1/admin/password_reset/:token
-// @access: private / Admin
+// @access: private / Admin / assistant
 const resetPassword = asyncWrapper(async (req, res, next) => {
   const { token } = req.params;
 
   //Assigning fileds to data from body
-  const newPassword = req.body.password;
-  const passwordConfirm = req.body.passwordConfirm;
+  const { newPassword, passwordConfirm } = req.body;
 
-  // Call service function to reset password
   const data = await userService.resetPassword(
     newPassword,
     passwordConfirm,
     token
   );
 
-  //Sending response with user data
   authResponseSender(data, StatusCode.Ok, req, res);
 });
 
 // =================Admin update password================================
 // @desc: User update password
 // @route: POST /api/v1/user/password_update/
-// @access: private / Admin
+// @access: private / Admin / assistant
 const updatePassword = asyncWrapper(async (req, res, next) => {
-  //Get user from database
   const id = req.user._id;
 
-  //Assigning fileds to data from body
-  const password = req.body.password;
-  const passwordConfirm = req.body.passwordConfirm;
+  const { password, passwordConfirm } = req.body;
 
-  // Call service function to update password
   const user = await userService.updatePassword(
     id,
     password,
@@ -201,7 +186,6 @@ const updatePassword = asyncWrapper(async (req, res, next) => {
     res
   );
 
-  //Sending response with user data
   authResponseSender(user, StatusCode.Ok, req, res);
 });
 
@@ -210,77 +194,91 @@ const updatePassword = asyncWrapper(async (req, res, next) => {
 // @route: POST /api/v1/user/password_update/
 // @access: private / Admin
 const updateInfo = asyncWrapper(async (req, res, next) => {
-  //Get user from req.user
   const id = req.user._id;
 
   //Defining fileds to update
-  const dataToUpdate = filterObj(req.body, "fullName", "username");
+  const dataToUpdate = filterObj(
+    req.body,
+    "fullName",
+    "username",
+    "telegram",
+    "address",
+    "instragram",
+    "number"
+  );
 
   // Validate the data before updating
   const validatedData =
     adminDataValidation.validateAdminDataForUpdate(dataToUpdate);
 
-  // Check if there's a file in the request and update the avatar field accordingly
   if (req.file) {
     validatedData.avatar = req.file.filename;
   }
 
-  //Call service function to update info
   const user = await userService.updateInfo(id, validatedData);
 
-  //Sending response with user data
   authResponseSender(user, StatusCode.Ok, req, res);
 });
 
-// =================Admin- add admin================================
-// @desc: Admin add admin used to add new admins
-// @route: POST /api/v1/user/newadmin/
-// @access: private / Admin
-const addAssistant = asyncWrapper(async (req, res, next) => {
-  const { fullName, username, password, email, passwordConfirm, role } =
-    req.body;
+// @desc: Toggle user contact info visibility
+// @route: POST /api/v1/user/show_info
+// @access: Private
+const toggleVisibility = asyncWrapper(async (req, res, next) => {
+  const userId = req.user._id;
 
-  // Validate admin data
-  const validatedData = adminDataValidation.validateAdminData(req.body);
+  const user = await userRepo.findById(userId);
+  if (!user) {
+    return next(new AppError("User not found", StatusCode.NotFound));
+  }
 
-  // Check if required fields are present
-  if (
-    !validatedData.fullName ||
-    !validatedData.username ||
-    !validatedData.email ||
-    !validatedData.password ||
-    !validatedData.passwordConfirm
-  ) {
+  user.isVisible = !user.isVisible;
+  await user.save({ validateModifiedOnly: true });
+
+  res.status(StatusCode.Ok).json({
+    status: SuccessCode.Success,
+    message: `User visibility toggled to ${user.isVisible}`,
+  });
+});
+
+// @desc: User enters new email address
+// @route: POST /api/v1/user/email_update
+// @access: Private
+const updateEmail = asyncWrapper(async (req, res, next) => {
+  const { _id } = req.user;
+  const { newEmail } = req.body;
+  const validateEmail = (email) => {
+    const re =
+      /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
+  };
+  const user = await userRepo.findById(_id);
+  if (!user) {
+    return next(new AppError("User not found", StatusCode.NotFound));
+  }
+  if (user.email === newEmail) {
     return next(
-      new AppError("Please provide all required fields", StatusCode.BadRequest)
+      new AppError("New email is same as old email", StatusCode.BadRequest)
+    );
+  }
+  if (!validateEmail(newEmail)) {
+    return next(
+      new AppError("Please provide new email", StatusCode.BadRequest)
     );
   }
 
-  const validData = {
-    fullName: validatedData.fullName,
-    username: validatedData.username,
-    email: validatedData.email,
-    password: validatedData.password,
-    passwordConfirm: validatedData.passwordConfirm,
-  };
+  await userService.updateEmail(user, newEmail, req);
 
-  // Call service function to create admin
-  const assistant = await userService.addAssistant(validData);
-  // Send response
-  authResponseSender(assistant, StatusCode.Created, req, res);
+  res.status(StatusCode.Ok).json({
+    status: SuccessCode.Success,
+  });
 });
 
-// =================Delete me================================
-// @desc: user can delete its account
-// @route: POST /api/v1/user/delete/
-// @access: private / Admin
-
-const deleteAccount = asyncWrapper(async (req, res, next) => {});
-
-const newToken = asyncWrapper(async (req, res, next) => {
-  const { refreshToken } = req.body;
-  const userId = await verifyRefreshToken(refreshToken);
-  const user = await userRepo.findById(userId);
+// @desc: User verifys new email address
+// @route: POST /api/v1/user/email_verify
+// @access: Private
+const verifyEmail = asyncWrapper(async (req, res, next) => {
+  const { otp } = req.body;
+  const user = await userService.verifyEmail(otp, req);
   authResponseSender(user, StatusCode.Ok, req, res);
 });
 
@@ -293,9 +291,9 @@ module.exports = {
   forgotPassword,
   resetPassword,
   updatePassword,
-  updatePassword,
   updateInfo,
   uploadAvatar,
-  addAssistant,
-  newToken,
+  toggleVisibility,
+  updateEmail,
+  verifyEmail,
 };

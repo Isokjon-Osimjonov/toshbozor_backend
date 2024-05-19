@@ -15,13 +15,13 @@ const signUp = async (data) => {
 
   // Create admin
   const user = await userRepo.create(data);
-
+  const email = user.email;
   //Generating OTP
   const otp = await user.sendVerificationOTP();
   await user.save({ validateBeforeSave: false });
 
   // Send OTP to the user's email
-  await sendOTPEmail(user, otp);
+  await sendOTPEmail(user, email, otp);
 };
 
 //====================================Admin verify
@@ -51,7 +51,6 @@ const verify = async (otp) => {
 
 //====================================Admin sign in
 const signIn = async (username, password, req, res) => {
-  // Check if user exist
   const user = await userRepo.findOne({
     username,
     isVerified: true,
@@ -81,9 +80,8 @@ const forgotPassword = async (username, req) => {
   const resetToken = await user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const url = `${req.protocol}://${req.get(
-    "host"
-  )}/password_reset/${resetToken}`;
+  const url = `https://admin.toshbozor.uz/password_reset/${resetToken}`;
+
   // 3) Send email to the user
   await sendPasswordResetEmail(user, url);
 };
@@ -139,17 +137,35 @@ const updateInfo = async (id, validatedData) => {
   return user;
 };
 
-//====================================Admin  add admin
-const addAssistant = async (data) => {
-  const isExist = await userRepo.findOne({ username: data.username });
-  if (isExist) {
-    throw new AppError("Username is already taken", StatusCode.BadRequest);
+const updateEmail = async (user, newEmail, req) => {
+  //Generating OTP
+  const otp = await user.sendVerificationOTP();
+  user.newEmail = newEmail;
+  await user.save({ validateBeforeSave: false });
+
+  // Send OTP to the user's new email
+  await sendOTPEmail(user, newEmail, otp);
+};
+
+const verifyEmail = async (otp, req) => {
+  const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
+  const user = await userRepo.findOne({
+    otp: hashedOTP,
+    otpExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new AppError("Invalid OTP", 400);
   }
+  // 2) Update user's otp to null
+  user.email = user.newEmail;
+  user.newEmail = undefined;
+  user.otp = undefined;
+  user.otpExpires = undefined;
+  await user.save({ validateBeforeSave: false });
 
-  data.isVerified = true;
-  const assistant = await userRepo.create(data);
-
-  return assistant;
+  return user;
 };
 
 module.exports = {
@@ -161,5 +177,6 @@ module.exports = {
   resetPassword,
   updatePassword,
   updateInfo,
-  addAssistant,
+  updateEmail,
+  verifyEmail,
 };

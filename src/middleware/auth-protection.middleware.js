@@ -2,7 +2,7 @@ const { promisify } = require("util");
 const { StatusCode } = require("../enums/status-code.enum");
 const AppError = require("../utils/appError");
 const { asyncWrapper } = require("../utils/asyncWrapper");
-const User = require("../models/admin.model");
+const User = require("../models/user.model");
 const {
   verifyToken,
   extractTokenFromHeaders,

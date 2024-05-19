@@ -11,6 +11,7 @@ const AppError = require("./src/utils/appError");
 const environments = require("./src/config/environments.config");
 const indexRoutes = require("./src/routes");
 const globalErrorHandler = require("./src/middleware/global-error-handler.middleware");
+const logger = require("./src/utils/logger");
 require("./src/config/redis.config");
 
 // express app initialization
@@ -31,19 +32,29 @@ if (environments.NODE_ENV === "development") {
 console.log(environments.NODE_ENV);
 // third party npm packages
 app.use(cors());
-app.options("*", cors());
 app.use(helmet());
 app.use(mongoSanitize());
 
 app.use(cookieParser());
 
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
+
 // route
 app.use("/api/v1", indexRoutes);
+
 app.use("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
+
 // error handling middleware
 app.use(globalErrorHandler);
+app.use((err, req, res, next) => {
+  logger.error(err.stack);
+  res.status(500).send("Something broke!");
+});
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });

@@ -45,10 +45,10 @@ async function newTransport() {
   }
 }
 
-async function sendEmail(user, url, template, subject, otp) {
+async function sendEmail(user, url, template, subject, otp, email) {
   try {
     const from = `Toshbozor <${process.env.EMAIL_FROM}>`;
-    const to = user.email;
+    const to = email;
     const username = user.username;
 
     // 1) Render HTML based on a pug template
@@ -98,14 +98,15 @@ async function sendPasswordResetEmail(user, url) {
   }
 }
 
-async function sendOTPEmail(user, otp) {
+async function sendOTPEmail(user, email, otp) {
   try {
     await sendEmail(
       user,
       null,
       "verificationOTP",
       "Your verification OTP (valid for only 10 minutes)",
-      otp
+      otp,
+      email
     );
   } catch (error) {
     // Handle error
