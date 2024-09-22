@@ -141,7 +141,7 @@ userSchema.methods.isPasswordChanged = function (jwt_iat) {
 };
 
 // Method to create a password reset token
-userSchema.methods.createPasswordResetToken = function () {
+userSchema.methods.createPasswordResetToken = async function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
 
   this.passwordResetToken = crypto

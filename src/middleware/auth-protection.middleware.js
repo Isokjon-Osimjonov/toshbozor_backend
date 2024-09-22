@@ -14,12 +14,22 @@ const {
 // =================Acces protection middleware================================
 
 const protect = asyncWrapper(async (req, res, next) => {
-  // Extract access token from request headers
-  const accessToken = await extractTokenFromHeaders(req);
+  // const accessToken = await extractTokenFromHeaders(req);
+  const accessToken = req.cookies.access_token;
+
+  if (!accessToken) {
+    return next(
+      new AppError(
+        "You are not logged in please log in to get access!",
+        StatusCode.Unauthorized
+      )
+    );
+  }
 
   try {
     // Verify access token
     const decoded = await verifyToken(accessToken);
+    console.log(decoded);
 
     // Check if user exists
     let user = await User.findById(decoded.id);
@@ -41,6 +51,7 @@ const protect = asyncWrapper(async (req, res, next) => {
 
     return next();
   } catch (error) {
+    console.log("ERROR", error);
     // Handle token expiration
     if (error.name === "TokenExpiredError") {
       try {
@@ -63,12 +74,14 @@ const protect = asyncWrapper(async (req, res, next) => {
         req.user = user;
 
         return next();
-      } catch (tokenRefreshingError) {
+      } catch (error) {
+        console.log("Invalid refresh token.", error);
         return next(
           new AppError("Invalid refresh token.", StatusCode.Unauthorized)
         );
       }
     } else {
+      console.log(error);
       return next(
         new AppError("Authentication failed.", StatusCode.Unauthorized)
       );

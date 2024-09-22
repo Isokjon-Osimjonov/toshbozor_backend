@@ -26,7 +26,7 @@ const removeUnverifiedUsers = async () => {
 };
 
 // =================User upload avatar middleware
-const uploadAvatar = photoUpload.single("avatar");
+const uploadAvatar = photoUpload("disk").single("avatar");
 
 // @desc: User sign up
 // @route: POST /api/v1/user/signup
@@ -115,8 +115,7 @@ const signIn = asyncWrapper(async (req, res, next) => {
   }
 
   const user = await userService.signIn(username, password, req, res);
-
-  await authResponseSender(user, StatusCode.Ok, req, res);
+  await authResponseSender(user, StatusCode.Ok, res, req);
 });
 
 // =================Admin log out================================
@@ -124,17 +123,21 @@ const signIn = asyncWrapper(async (req, res, next) => {
 // @route: POST /api/v1/user/signout
 // @access: Admin / assistant
 const signOut = (req, res) => {
-  //Assigning token to null
-  // res.cookie("jwt", "signedout", {
-  //   expires: new Date(Date.now() + 1000),
-  //   httpOnly: true,
-  // });
-  res.clearCookie("refreshToken");
+  try {
+    res.cookie("access_token", "", { maxAge: 1 });
+    res.cookie("refresh_token", "", { maxAge: 1 });
 
-  // Send response
-  res.status(StatusCode.Ok).json({
-    status: SuccessCode.Success,
-  });
+    const setCookieHeader = res.getHeader("Set-Cookie");
+    console.log(setCookieHeader);
+
+    res.status(200).json({
+      status: "success",
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Error in signOut:", error);
+    res.status(500).json({ error: "Failed to log out" });
+  }
 };
 
 // =================Admin forgot password================================
@@ -166,7 +169,7 @@ const resetPassword = asyncWrapper(async (req, res, next) => {
     token
   );
 
-  authResponseSender(data, StatusCode.Ok, req, res);
+  authResponseSender(data, StatusCode.Ok, res, req);
 });
 
 // =================Admin update password================================
@@ -186,7 +189,7 @@ const updatePassword = asyncWrapper(async (req, res, next) => {
     res
   );
 
-  authResponseSender(user, StatusCode.Ok, req, res);
+  authResponseSender(user, StatusCode.Ok, res, req);
 });
 
 // =================Admin update info================================
@@ -201,23 +204,37 @@ const updateInfo = asyncWrapper(async (req, res, next) => {
     req.body,
     "fullName",
     "username",
-    "telegram",
-    "address",
-    "instragram",
-    "number"
+    "companyName"
   );
+
+  if (
+    req.body.telegram ||
+    req.body.address ||
+    req.body.instagram ||
+    req.body.number
+  ) {
+    dataToUpdate.contactInfo = {
+      telegram: req.body.telegram,
+      address: req.body.address,
+      instagram: req.body.instagram,
+      number: req.body.number,
+    };
+  }
 
   // Validate the data before updating
   const validatedData =
     adminDataValidation.validateAdminDataForUpdate(dataToUpdate);
 
   if (req.file) {
-    validatedData.avatar = req.file.filename;
+    const fileName = `${req.protocol}://${req.get("host")}/images/${
+      req.file.filename
+    }`;
+    validatedData.avatar = fileName;
   }
 
   const user = await userService.updateInfo(id, validatedData);
 
-  authResponseSender(user, StatusCode.Ok, req, res);
+  authResponseSender(user, StatusCode.Ok, res, req);
 });
 
 // @desc: Toggle user contact info visibility
@@ -279,7 +296,7 @@ const updateEmail = asyncWrapper(async (req, res, next) => {
 const verifyEmail = asyncWrapper(async (req, res, next) => {
   const { otp } = req.body;
   const user = await userService.verifyEmail(otp, req);
-  authResponseSender(user, StatusCode.Ok, req, res);
+  authResponseSender(user, StatusCode.Ok, res, req);
 });
 
 module.exports = {

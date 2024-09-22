@@ -46,7 +46,7 @@ const adminValidationSchemaForUpdate = Joi.object({
     .required()
     .min(4)
     .max(32)
-    .regex(/^\s*[A-Za-z]+(?:\s+[A-Za-z]+){1,2}\s*$/)
+    .pattern(/^\S.*\S$/)
     .message("Full name can not contain spaces"),
 
   username: Joi.string()
@@ -57,10 +57,14 @@ const adminValidationSchemaForUpdate = Joi.object({
     .message("Username can not contain spaces")
     .lowercase(),
 
-  instagram: Joi.string(),
-  telegram: Joi.string(),
-  address: Joi.string(),
-  number: Joi.string(),
+  companyName: Joi.string().required(),
+
+  contactInfo: Joi.object({
+    instagram: Joi.string(),
+    telegram: Joi.string(),
+    address: Joi.string(),
+    number: Joi.string(),
+  }).optional(),
 });
 
 const validateAdminDataForUpdate = (data) => {

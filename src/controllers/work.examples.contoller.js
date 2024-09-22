@@ -9,7 +9,7 @@ const { unlinkFile, detectImagePath } = require("../utils/fileManager");
 const sharp = require("sharp");
 
 // Middleware for uploading work example images.
-const uploadImage = photoUpload.single("image");
+const uploadImage = photoUpload("memory").single("image");
 
 const resizeImage = asyncWrapper(async (req, res, next) => {
   if (!req.file) return next();

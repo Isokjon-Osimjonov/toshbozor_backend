@@ -1,29 +1,45 @@
-const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
 const {
   signAccessToken,
   signRefreshToken,
 } = require("../helpers/token.helpers");
+const parseDurationToSeconds = require("../utils/parseDurationToSeconds");
 
-const authResponseSender = async (data, statusCode, req, res) => {
+const authResponseSender = async (user, statusCode, res, req) => {
   try {
-    // Check if data is defined and contains required properties
-    if (!data || !data._id || !data.username) {
+    if (!user || !user._id || !user.username) {
       return res.status(500).json({ error: "Invalid data" });
     }
 
-    // Sign access token
-    const accessToken = await signAccessToken(data._id);
+    const accessTokenExpire =
+      parseDurationToSeconds(process.env.ACCESS_TOKEN_EXPIRE) * 1000;
+    const refreshTokenExpire =
+      parseDurationToSeconds(process.env.REFRESH_TOKEN_EXPIRE) * 1000;
 
-    // Sign refresh token
-    const refreshToken = await signRefreshToken(data._id);
+    // options for cookies
+    const tokenOptions = (expiresIn) => ({
+      expires: new Date(Date.now() + expiresIn),
+      maxAge: expiresIn,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    // Sign access token
+    const accessToken = await signAccessToken(user._id);
+    const refreshToken = await signRefreshToken(user._id);
+
     // Remove password from data object
-    data.password = undefined;
-    // Send response with both tokens
+    user.password = undefined;
+
+    res.cookie("access_token", accessToken, tokenOptions(accessTokenExpire));
+    res.cookie("refresh_token", refreshToken, tokenOptions(refreshTokenExpire));
+
     res.status(statusCode).json({
       status: "success",
       accessToken,
-      refreshToken,
-      data,
+      user,
     });
   } catch (error) {
     console.error("Error in authResponseSender:", error);

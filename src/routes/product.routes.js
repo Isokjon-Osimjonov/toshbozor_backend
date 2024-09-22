@@ -3,7 +3,7 @@ const router = Router();
 
 const {
   createProduct,
-  photoUpload,
+  uploadImages,
   getAllProducts,
   getProductById,
   updateProduct,
@@ -17,7 +17,7 @@ const { protect, access } = require("../middleware/auth-protection.middleware");
 // Routes for products
 router
   .route("/")
-  .post(protect, access("admin", "assistant"), photoUpload, createProduct)
+  .post(protect, access("admin", "assistant"), uploadImages, createProduct)
   .get(getAllProducts)
   .delete(protect, access("admin"), deleteAllProducts);
 
@@ -25,7 +25,7 @@ router
   .route("/:id")
   .delete(protect, access("admin"), deleteProduct)
   .get(getProductById)
-  .put(protect, access("admin", "assistant"), photoUpload, updateProduct);
+  .put(protect, access("admin", "assistant"), uploadImages, updateProduct);
 
 router.route("/category/:category").get(getProductsByCategory);
 

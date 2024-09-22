@@ -1,6 +1,7 @@
 const userRepo = require("../repositories/user.repo");
 const AppError = require("../utils/appError");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const { sendPasswordResetEmail } = require("../utils/email");
 const { StatusCode } = require("../enums/status-code.enum");
 const { sendOTPEmail, sendWelcomeEmail } = require("../utils/email");
@@ -78,6 +79,7 @@ const forgotPassword = async (username, req) => {
   }
   // 2) Calling admin createPasswordResetToken method to generate random reset token and save it to the database
   const resetToken = await user.createPasswordResetToken();
+
   await user.save({ validateBeforeSave: false });
 
   const url = `https://admin.toshbozor.uz/password_reset/${resetToken}`;
@@ -89,6 +91,7 @@ const forgotPassword = async (username, req) => {
 //====================================Admin  reset password
 const resetPassword = async (newPassword, passwordConfirm, token) => {
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
   const user = await userRepo.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
@@ -128,8 +131,9 @@ const updatePassword = async (id, password, passwordConfirm, req, res) => {
 //====================================Admin  update info
 const updateInfo = async (id, validatedData) => {
   // Find the user by ID
-  const user = await userRepo.findByIdAndUpdate(id, validatedData);
-
+  const user = await userRepo.findByIdAndUpdate(id, validatedData, {
+    new: true,
+  });
   if (!user) {
     throw new AppError("Something went wrong ", 400);
   }

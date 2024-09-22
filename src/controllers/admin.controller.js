@@ -4,7 +4,8 @@ const { StatusCode } = require("../enums/status-code.enum.js");
 const AppError = require("../utils/appError.js");
 const { SuccessCode } = require("../enums/success-code.enum.js");
 const userRepo = require("../repositories/user.repo.js");
-
+const adminDataValidation = require("../validators/admin.validator.js");
+const authResponseSender = require("../middleware/response-handler.middleware.js");
 // @desc: Admin add admin used to add new admins
 // @route: POST /api/v1/user/newadmin/
 // @access: private / Admin
@@ -18,7 +19,8 @@ const addAssistant = asyncWrapper(async (req, res, next) => {
     !validatedData.username ||
     !validatedData.email ||
     !validatedData.password ||
-    !validatedData.passwordConfirm
+    !validatedData.passwordConfirm ||
+    !validatedData.companyName
   ) {
     return next(
       new AppError("Please provide all required fields", StatusCode.BadRequest)
@@ -30,9 +32,14 @@ const addAssistant = asyncWrapper(async (req, res, next) => {
     email: validatedData.email,
     password: validatedData.password,
     passwordConfirm: validatedData.passwordConfirm,
+    companyName: validatedData.companyName,
   };
+
   const assistant = await amdinServices.addAssistant(validData);
-  authResponseSender(assistant, StatusCode.Created, req, res);
+
+  res.status(200).json({
+    status: SuccessCode.Success,
+  });
 });
 
 // @desc: main admin can disable assistant's account

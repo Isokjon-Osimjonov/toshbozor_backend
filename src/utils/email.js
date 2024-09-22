@@ -48,7 +48,7 @@ async function newTransport() {
 async function sendEmail(user, url, template, subject, otp, email) {
   try {
     const from = `Toshbozor <${process.env.EMAIL_FROM}>`;
-    const to = email;
+    const to = email || user.email;
     const username = user.username;
 
     // 1) Render HTML based on a pug template

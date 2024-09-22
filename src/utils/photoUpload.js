@@ -1,30 +1,35 @@
 const multer = require("multer");
 const path = require("path");
 
-// Creating and setting storage
-const destination = "./public/images";
-const storage = multer.diskStorage({
-  destination: destination,
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
-    );
-  },
-});
-const multerStorage = multer.memoryStorage();
+const photoUpload = (storageType) => {
+  const destination = "./public/images";
+  const fileSizeLimit = 10 * 1024 * 1024 * 3;
 
-// Initializing upload function
-const fileSizeLimit = 10 * 1024 * 1024 * 3;
-const photoUpload = multer({
-  storage: multerStorage,
-  limits: { fileSize: fileSizeLimit },
-  fileFilter: function (req, file, cb) {
-    checkFileTypes(file, cb);
-  },
-});
+  const storage =
+    storageType === "disk"
+      ? multer.diskStorage({
+          destination: destination,
+          filename: function (req, file, cb) {
+            cb(
+              null,
+              file.fieldname +
+                "-" +
+                Date.now() +
+                path.extname(file.originalname)
+            );
+          },
+        })
+      : multer.memoryStorage();
+  return multer({
+    storage: storage,
+    limits: { fileSize: fileSizeLimit },
+    fileFilter: function (req, file, cb) {
+      checkFileTypes(file, cb);
+    },
+  });
+};
 
-// Function to handle file type validation
+// Function to handle file type validationt
 const checkFileTypes = (file, cb) => {
   const allowedFileTypes = /jpeg|jpg|png/;
   const extname = allowedFileTypes.test(
@@ -39,4 +44,4 @@ const checkFileTypes = (file, cb) => {
   }
 };
 
-module.exports = photoUpload;
+module.exports =  photoUpload;

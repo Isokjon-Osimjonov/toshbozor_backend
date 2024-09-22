@@ -3,7 +3,7 @@ const {
   asyncWrapper,
   asyncWrapperCreate,
 } = require("../utils/asyncWrapper.js");
-const upload = require("../utils/photoUpload.js");
+const photoUpload = require("../utils/photoUpload.js");
 const { StatusCode } = require("../enums/status-code.enum.js");
 const { SuccessCode } = require("../enums/success-code.enum.js");
 const userRepo = require("../repositories/user.repo.js");
@@ -16,7 +16,7 @@ const { cleanupFiles } = require("../utils/product-create-err-handler.js");
 const { unlinkFile, detectImagesPath } = require("../utils/fileManager");
 
 // Middleware for uploading product photo.
-const photoUpload = upload.array("image", 10);
+const uploadImages = photoUpload("memory").array("image", 10);
 
 const resizeImage = asyncWrapper(async (file, req) => {
   if (!file) throw new AppError("Please upload an image", 400);
@@ -227,7 +227,7 @@ const deleteAllProducts = asyncWrapper(async (req, res, next) => {
 
 module.exports = {
   createProduct,
-  photoUpload,
+  uploadImages,
   resizeImage,
   getAllProducts,
   getProductById,
