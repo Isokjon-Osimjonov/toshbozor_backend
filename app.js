@@ -33,7 +33,7 @@ if (environments.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-console.log(environments.NODE_ENV);
+
 // third party npm packages
 app.use(
   cors({
